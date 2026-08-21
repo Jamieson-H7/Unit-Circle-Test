@@ -46,7 +46,7 @@ const answerSet = (answer, distractors) => { const fallback = ['−1', '−1 / 2
 const binaryAnswerSet = answer => { const answers = shuffle(['+', '−']); return { answers, correct: answers.indexOf(answer) }; };
 const quadrant = angle => angle < 90 ? 'I' : angle < 180 ? 'II' : angle < 270 ? 'III' : 'IV';
 const radianName = angle => RADIAN_NAMES[angle] === '0' ? '0 radians' : `${RADIAN_NAMES[angle]} radians`;
-function renderHeroAngleRays() { const rays = document.querySelector('#hero-angle-rays'); if (!rays) return; rays.innerHTML = ''; STANDARD_ANGLES.forEach(angle => { const radians = angle * Math.PI / 180; const ray = document.createElement('span'); ray.className = 'hero-angle-ray'; ray.style.transform = `rotate(${-angle}deg)`; const label = document.createElement('span'); label.className = 'hero-angle-ray-label'; label.textContent = RADIAN_NAMES[angle]; label.style.left = `${50 + 56 * Math.cos(radians)}%`; label.style.top = `${50 - 56 * Math.sin(radians)}%`; rays.append(ray, label); }); }
+function renderHeroAngleRays() { const rays = document.querySelector('#hero-angle-rays'); if (!rays) return; rays.innerHTML = ''; const labelRadius = window.matchMedia('(max-width:700px)').matches ? 44 : 56; STANDARD_ANGLES.forEach(angle => { const radians = angle * Math.PI / 180; const ray = document.createElement('span'); ray.className = 'hero-angle-ray'; ray.style.transform = `rotate(${-angle}deg)`; const label = document.createElement('span'); label.className = 'hero-angle-ray-label'; label.dataset.angle = angle; label.textContent = RADIAN_NAMES[angle]; label.style.left = `${50 + labelRadius * Math.cos(radians)}%`; label.style.top = `${50 - labelRadius * Math.sin(radians)}%`; rays.append(ray, label); }); }
 renderHeroAngleRays();
 
 function buildPretestQuestions() {
@@ -197,6 +197,7 @@ let learnVisualAngle = 45;
 let learnZoom = 1;
 let learnSweepAnimationFrame = null;
 let screenBeforeLearn = 'home';
+const LEARN_MOBILE_CIRCLE_SIZE = 720;
 
 function compactExactValue(value) { return value.replaceAll(' ', ''); }
 function renderLearnAngleLabels() {
@@ -354,7 +355,7 @@ function setLearnMode(mode) {
 function getLearnFitZoom() {
   if (!window.matchMedia('(max-width:760px)').matches) return 1;
   const scroller = document.querySelector('.learn-circle-scroll');
-  return Math.min(1, Math.max(.48, (scroller.clientWidth - 4) / 570));
+  return Math.min(1, Math.max(.38, (scroller.clientWidth - 4) / LEARN_MOBILE_CIRCLE_SIZE));
 }
 
 function setLearnZoom(nextZoom, focalPoint = null) {
@@ -362,7 +363,7 @@ function setLearnZoom(nextZoom, focalPoint = null) {
   const circle = document.querySelector('#learn-circle');
   const previousZoom = learnZoom;
   const minimumZoom = getLearnFitZoom();
-  learnZoom = Math.max(minimumZoom, Math.min(1.6, nextZoom));
+  learnZoom = Math.max(minimumZoom, Math.min(2.2, nextZoom));
   const contentX = focalPoint ? scroller.scrollLeft + focalPoint.x : 0;
   const contentY = focalPoint ? scroller.scrollTop + focalPoint.y : 0;
   circle.style.zoom = String(learnZoom);
@@ -390,6 +391,7 @@ let learnDragStart = null;
 const learnScroller = document.querySelector('.learn-circle-scroll');
 function pointerDistance(points) { return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y); }
 learnScroller.addEventListener('pointerdown', event => {
+  if ('ontouchstart' in window) return;
   if (event.pointerType !== 'touch' || !window.matchMedia('(max-width:760px)').matches) return;
   learnPointers.set(event.pointerId, { x:event.clientX, y:event.clientY });
   if (learnPointers.size === 1) learnDragStart = { x:event.clientX, y:event.clientY, left:learnScroller.scrollLeft, top:learnScroller.scrollTop };
@@ -400,6 +402,7 @@ learnScroller.addEventListener('pointerdown', event => {
   }
 });
 learnScroller.addEventListener('pointermove', event => {
+  if ('ontouchstart' in window) return;
   if (event.pointerType !== 'touch') return;
   if (!learnPointers.has(event.pointerId)) return;
   learnPointers.set(event.pointerId, { x:event.clientX, y:event.clientY });
@@ -427,6 +430,26 @@ function releaseLearnPointer(event) {
 learnScroller.addEventListener('pointerup', releaseLearnPointer);
 learnScroller.addEventListener('pointercancel', releaseLearnPointer);
 
+let learnTouchPinchStart = null;
+function touchDistance(touches) { return Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY); }
+learnScroller.addEventListener('touchstart', event => {
+  if (!window.matchMedia('(max-width:760px)').matches || event.touches.length !== 2) return;
+  event.preventDefault();
+  learnTouchPinchStart = { distance:touchDistance(event.touches), zoom:learnZoom };
+}, { passive:false });
+learnScroller.addEventListener('touchmove', event => {
+  if (!learnTouchPinchStart || event.touches.length !== 2) return;
+  event.preventDefault();
+  const bounds = learnScroller.getBoundingClientRect();
+  const focalPoint = {
+    x:(event.touches[0].clientX + event.touches[1].clientX) / 2 - bounds.left,
+    y:(event.touches[0].clientY + event.touches[1].clientY) / 2 - bounds.top
+  };
+  setLearnZoom(learnTouchPinchStart.zoom * touchDistance(event.touches) / learnTouchPinchStart.distance, focalPoint);
+}, { passive:false });
+learnScroller.addEventListener('touchend', event => { if (event.touches.length < 2) learnTouchPinchStart = null; }, { passive:true });
+learnScroller.addEventListener('touchcancel', () => { learnTouchPinchStart = null; }, { passive:true });
+
 function openLearnScreen() {
   const activeScreen = document.querySelector('.screen.active');
   if (activeScreen && activeScreen.id !== 'learn-screen') screenBeforeLearn = activeScreen.id.replace('-screen', '');
@@ -440,9 +463,9 @@ setLearnMode('basics');
 document.querySelector('[data-action="learn"]').addEventListener('click', openLearnScreen);
 document.querySelector('[data-action="learn-back"]').addEventListener('click', () => showScreen(screenBeforeLearn));
 document.querySelectorAll('.learn-mode-button').forEach(button => button.addEventListener('click', () => setLearnMode(button.dataset.learnMode)));
-document.querySelector('[data-learn-zoom="out"]').addEventListener('click', () => setLearnZoom(learnZoom - .15));
-document.querySelector('[data-learn-zoom="in"]').addEventListener('click', () => setLearnZoom(learnZoom + .15));
-window.addEventListener('resize', () => { if (document.querySelector('#learn-screen').classList.contains('active')) { resetLearnZoom(); centerLearnCircle(); } });
+document.querySelector('[data-learn-zoom="out"]').addEventListener('click', () => setLearnZoom(learnZoom - .2));
+document.querySelector('[data-learn-zoom="in"]').addEventListener('click', () => setLearnZoom(learnZoom + .2));
+window.addEventListener('resize', () => { renderHeroAngleRays(); if (document.querySelector('#learn-screen').classList.contains('active')) { resetLearnZoom(); centerLearnCircle(); } });
 
 document.querySelector('[data-action="start"]').addEventListener('click', () => showScreen('setup'));
 document.querySelector('[data-action="continue"]').addEventListener('click', () => { const session = lastQuizSession || cached; if (!session) return; restoreProgress(session); showScreen('quiz'); renderQuiz(); });
