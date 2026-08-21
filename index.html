@@ -20,6 +20,7 @@
       </a>
       <div class="topbar-meta"><span class="live-dot"></span><span id="header-status">learn at your pace</span></div>
     </header>
+    <div class="celebration" id="celebration" aria-hidden="true"></div>
 
     <section class="screen active" id="home-screen" aria-labelledby="home-title">
       <div class="hero-copy">
@@ -32,8 +33,7 @@
         </div>
       </div>
       <div class="hero-art" aria-label="An interactive unit circle showing sine, cosine, and tangent values">
-      <div class="hero-circle circle-grid" id="hero-circle"><span class="axis axis-x"></span><span class="axis axis-y"></span><span class="hero-tangent-axis" id="hero-tangent-axis"></span><span class="hero-tangent-line" id="hero-tangent-line"></span><span class="hero-tangent-point" id="hero-tangent-point"></span><span class="hero-cos-component" id="hero-cos-component"></span><span class="hero-sin-component" id="hero-sin-component"></span><span class="hero-radius" id="hero-radius"></span><span class="hero-point" id="hero-point"></span><span class="hero-angle" id="hero-angle">45°</span><span class="hero-value-label hero-sine-label" id="hero-sine-label"></span><span class="hero-value-label hero-cos-label" id="hero-cos-label"></span><span class="hero-value-label hero-tan-label" id="hero-tan-label"></span></div>
-        <div class="art-caption">one circle<br><strong>infinite clarity</strong></div>
+      <div class="hero-circle circle-grid" id="hero-circle"><span class="hero-angle-rays" id="hero-angle-rays" aria-hidden="true"></span><span class="axis axis-x"></span><span class="axis axis-y"></span><span class="hero-tangent-axis" id="hero-tangent-axis"></span><span class="hero-tangent-line" id="hero-tangent-line"></span><span class="hero-tangent-point" id="hero-tangent-point"></span><span class="hero-cos-component" id="hero-cos-component"></span><span class="hero-sin-component" id="hero-sin-component"></span><span class="hero-radius" id="hero-radius"></span><span class="hero-point" id="hero-point"></span><span class="hero-angle" id="hero-angle">45°</span><span class="hero-value-label hero-sine-label" id="hero-sine-label"></span><span class="hero-value-label hero-cos-label" id="hero-cos-label"></span><span class="hero-value-label hero-tan-label" id="hero-tan-label"></span></div>
       </div>
     </section>
 
@@ -55,18 +55,19 @@
       <div class="question-layout"><div class="question-panel"><span class="topic-label" id="pretest-topic">QUADRANTS & SIGNS</span><h3 id="pretest-question">In which quadrant is sin θ positive and cos θ negative?</h3><div class="answer-grid" id="pretest-answers"></div><p class="feedback" id="pretest-feedback" aria-live="polite"></p></div><div class="mini-circle" id="pretest-circle"><span class="axis axis-x"></span><span class="axis axis-y"></span><span class="quad q1">I</span><span class="quad q2">II</span><span class="quad q3">III</span><span class="quad q4">IV</span></div></div>
     </section>
 
-    <section class="screen quiz-screen full-quiz" id="quiz-screen" aria-labelledby="quiz-title">
+    <section class="screen quiz-screen full-quiz" id="quiz-screen" aria-label="Full practice quiz">
       <button class="back-link quiz-back" data-action="home">← Back home</button>
-      <div class="quiz-heading"><div><p class="eyebrow">Full practice</p><h2 id="quiz-title">Make sense of<br><em>the circle.</em></h2></div><div class="score-chip"><span id="quiz-score">0</span> correct</div></div>
+      <div class="quiz-heading"><div><p class="eyebrow">Full practice</p><h2 id="quiz-title">Quiz Time</h2></div><div class="score-chip"><span id="quiz-score">0</span> correct</div></div>
       <div class="topic-tabs" id="topic-tabs"><button class="session-tab active" data-topic="active">Active quiz</button><button data-topic="all">All topics</button><button data-topic="signs">Signs</button><button data-topic="locations">Degrees & radians</button><button data-topic="ratios">Ratios</button></div>
-      <div class="topic-preview" id="topic-preview" hidden><div><span class="topic-label" id="preview-topic"></span><strong id="preview-title"></strong><p id="preview-copy"></p></div><button class="button button-primary" id="start-topic-quiz">Start this quiz <span>→</span></button></div>
-      <div class="question-layout practice-layout"><div class="circle-stage"><div class="unit-circle" id="unit-circle"><span class="axis axis-x"></span><span class="axis axis-y"></span><span class="angle-ticks" id="angle-ticks" aria-hidden="true"></span><svg class="circle-feedback" id="circle-feedback" viewBox="0 0 100 100" aria-hidden="true"></svg><span class="circle-marker" id="circle-marker"></span><span class="target-marker" id="target-marker"></span></div><div class="circle-key"><span><i class="key-dot current"></i> your answer</span><span><i class="key-dot target"></i> correct location</span></div></div><div class="question-panel practice-panel"><div class="question-meta"><span class="topic-label" id="quiz-topic">EXACT VALUES</span><span class="progress-label" id="quiz-progress">01 / 12</span></div><h3 id="quiz-question">Which point on the circle represents 60°?</h3><div class="answer-grid" id="quiz-answers"></div><div class="result-box" id="quiz-result" aria-live="polite"><span class="result-icon" id="result-icon"></span><div><strong id="result-title"></strong><p id="result-copy"></p></div></div><button class="button button-primary next-button" id="next-question" data-action="next" disabled>Choose an answer <span>→</span></button></div></div>
+      <div class="topic-preview" id="topic-preview" hidden><div><span class="topic-label" id="preview-topic"></span><strong id="preview-title"></strong><p id="preview-copy"></p></div><div class="topic-preview-actions"><button class="button button-primary" id="start-topic-quiz">Start this quiz <span>→</span></button><button class="button button-secondary icon-button" id="randomize-topic-quiz" aria-label="Shuffle questions" title="Shuffle questions"><span aria-hidden="true">⤨</span></button></div></div>
+      <div class="question-layout practice-layout"><div class="circle-stage"><div class="unit-circle" id="unit-circle"><span class="axis axis-x"></span><span class="axis axis-y"></span><span class="angle-ticks" id="angle-ticks" aria-hidden="true"></span><svg class="circle-feedback" id="circle-feedback" viewBox="0 0 100 100" aria-hidden="true"></svg><span class="circle-marker" id="circle-marker"></span><span class="target-marker" id="target-marker"></span></div><div class="circle-key"><span><i class="key-dot current"></i> your answer</span><span><i class="key-dot target"></i> correct location</span></div></div><div class="question-panel practice-panel"><div class="question-meta"><span class="topic-label" id="quiz-topic">EXACT VALUES</span><span class="progress-label" id="quiz-progress">01 / 12</span></div><h3 id="quiz-question">Which point on the circle represents 60°?</h3><div class="answer-grid" id="quiz-answers"></div><button class="button button-primary next-button" id="next-question" data-action="next" disabled>Choose an answer <span>→</span></button><div class="result-box" id="quiz-result" aria-live="polite"><span class="result-icon" id="result-icon"></span><div><strong id="result-title"></strong><p id="result-copy"></p></div></div></div></div>
     </section>
 
     <section class="screen results-screen" id="results-screen" aria-labelledby="results-title">
       <p class="eyebrow">Practice complete</p>
       <h2 id="results-title">Your circle<br><em>is clearer.</em></h2>
       <div class="results-score" id="results-score">0 / 80</div>
+      <div class="results-grade" id="results-grade" aria-label="Letter grade">A</div>
       <p class="section-intro" id="results-message">Your next pass can turn the missed ideas into quick instincts.</p>
       <div class="results-focus"><span class="topic-label">KEEP AN EYE ON</span><div id="results-topics"></div></div>
       <div class="results-actions"><button class="button button-primary" id="retry-quiz">Take another quiz <span>↗</span></button><button class="button button-quiet" id="results-home">Back home</button></div>
