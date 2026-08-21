@@ -1,5 +1,7 @@
 const STORAGE_KEY = 'circlewise-progress-v2';
 const LAST_SESSION_KEY = 'circlewise-last-session-v2';
+const TEXT_SIZE_KEY = 'circlewise-text-size';
+const TEXT_SIZE_SCALES = { default:1, medium:1.1, large:1.2, 'extra-large':1.3 };
 const STANDARD_ANGLES = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330];
 const ANGLE_NAMES = { 0: '0°', 30: '30°', 45: '45°', 60: '60°', 90: '90°', 120: '120°', 135: '135°', 150: '150°', 180: '180°', 210: '210°', 225: '225°', 240: '240°', 270: '270°', 300: '300°', 315: '315°', 330: '330°' };
 const RADIAN_NAMES = { 0: '0', 30: 'π / 6', 45: 'π / 4', 60: 'π / 3', 90: 'π / 2', 120: '2π / 3', 135: '3π / 4', 150: '5π / 6', 180: 'π', 210: '7π / 6', 225: '5π / 4', 240: '4π / 3', 270: '3π / 2', 300: '5π / 3', 315: '7π / 4', 330: '11π / 6' };
@@ -33,6 +35,67 @@ let categoryScores = {};
 let missedQuestionIds = [];
 let lastQuizSession = null;
 let previewTopic = null;
+let selectedTextSize = 'default';
+let scaledTextElements = new Map();
+let textSizeRefreshFrame = 0;
+
+function restoreScaledText() {
+  scaledTextElements.forEach((originalSize, element) => {
+    if (!element.isConnected) return;
+    if (originalSize) element.style.fontSize = originalSize;
+    else element.style.removeProperty('font-size');
+  });
+  scaledTextElements = new Map();
+}
+
+function scalePageText(scale) {
+  if (scale === 1) return;
+  const elements = [document.body, ...document.body.querySelectorAll('*')]
+    .filter(element => !['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(element.tagName));
+  const sizes = elements.map(element => ({
+    element,
+    originalSize:element.style.fontSize,
+    computedSize:Number.parseFloat(getComputedStyle(element).fontSize)
+  }));
+  sizes.forEach(({ element, originalSize, computedSize }) => {
+    if (!Number.isFinite(computedSize) || computedSize <= 0) return;
+    scaledTextElements.set(element, originalSize);
+    element.style.fontSize = `${computedSize * scale}px`;
+  });
+}
+
+function refreshTextSize() {
+  textSizeRefreshFrame = 0;
+  restoreScaledText();
+  scalePageText(TEXT_SIZE_SCALES[selectedTextSize]);
+}
+
+function scheduleTextSizeRefresh() {
+  if (selectedTextSize === 'default' || textSizeRefreshFrame) return;
+  textSizeRefreshFrame = requestAnimationFrame(refreshTextSize);
+}
+
+function setTextSize(size, persist = true) {
+  selectedTextSize = Object.hasOwn(TEXT_SIZE_SCALES, size) ? size : 'default';
+  document.body.dataset.textSize = selectedTextSize;
+  refreshTextSize();
+  document.querySelectorAll('.text-size-option').forEach(button => {
+    const active = button.dataset.textSize === selectedTextSize;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+  if (persist) localStorage.setItem(TEXT_SIZE_KEY, selectedTextSize);
+}
+
+function initializeTextSizePicker() {
+  const savedSize = localStorage.getItem(TEXT_SIZE_KEY) || 'default';
+  document.querySelectorAll('.text-size-option').forEach(button => {
+    button.addEventListener('click', () => setTextSize(button.dataset.textSize));
+  });
+  setTextSize(savedSize, false);
+  const observer = new MutationObserver(scheduleTextSizeRefresh);
+  observer.observe(document.body, { childList:true, subtree:true });
+}
 
 function shuffle(items) {
   const shuffled = [...items];
@@ -151,7 +214,7 @@ const LEARN_LESSONS = {
     kicker: 'START HERE',
     title: 'One circle, one unit wide',
     body: [
-      'A circle is every point that sits the same distance from its center. On the unit circle, that distance—the radius—is exactly 1.',
+      'A circle is every point that sits the same distance from its center. On the unit circle, that distance, the radius, is exactly 1.',
       'We place the center at (0, 0). Any point on the edge can then be described by how far it is left or right and how far it is up or down.',
       'The angle θ tells us how far we have turned from the positive x-axis. Counterclockwise is the positive direction.'
     ],
@@ -171,13 +234,14 @@ const LEARN_LESSONS = {
   angles: {
     angle: 60,
     kicker: 'TWO NAMES FOR ONE TURN',
-    title: 'Degrees and radians locate the same point',
+    title: 'Two ways to measure one turn',
+    usesMathMarkup: true,
     body: [
-      'Degrees divide a full turn into 360 equal pieces. Radians measure the same turn by asking how much arc fits along a radius-1 circle.',
-      'A half-turn is 180° or π radians, so a full turn is 360° or 2π radians. Every familiar degree angle has a radian partner at the exact same location.',
-      'To move from degrees to radians, multiply by π/180. To move back, multiply by 180/π.'
+      'Degrees split a full turn into 360 equal parts. Half a turn is <math class="learn-math" aria-label="180 degrees"><mn>180</mn><mo>°</mo></math>, and a quarter-turn is <math class="learn-math" aria-label="90 degrees"><mn>90</mn><mo>°</mo></math>.',
+      'Radians use the radius as a ruler along the circle’s edge. An arc one radius long makes an angle of <math class="learn-math" aria-label="1 radian"><mn>1</mn><mspace width=".16em"></mspace><mtext>radian</mtext></math>. On a unit circle, the radian measure is simply the length of that arc.',
+      'The whole edge is <math class="learn-math" aria-label="2 pi times the radius"><mn>2</mn><mi>π</mi><mi>r</mi></math> long, so <math class="learn-math" aria-label="360 degrees equals 2 pi radians"><mn>360</mn><mo>°</mo><mo>=</mo><mn>2</mn><mi>π</mi><mspace width=".16em"></mspace><mtext>rad</mtext></math>. This gives the conversion <math class="learn-math learn-math-fraction" aria-label="degrees over 180 degrees equals radians over pi"><mfrac><mtext>degrees</mtext><mrow><mn>180</mn><mo>°</mo></mrow></mfrac><mo>=</mo><mfrac><mtext>radians</mtext><mi>π</mi></mfrac></math>.'
     ],
-    takeaway: '90° = π/2, 180° = π, 270° = 3π/2, and 360° = 2π.'
+    takeaway: 'Same turn, different units: <math class="learn-math" aria-label="180 degrees equals pi radians"><mn>180</mn><mo>°</mo><mo>=</mo><mi>π</mi><mspace width=".16em"></mspace><mtext>rad</mtext></math>.'
   },
   sincos: {
     angle: 45,
@@ -207,6 +271,7 @@ let selectedLearnAngle = 45;
 let learnVisualAngle = 45;
 let learnZoom = 1;
 let learnSweepAnimationFrame = null;
+let learnQuadrantAnimationFrame = null;
 let screenBeforeLearn = 'home';
 const LEARN_MOBILE_CIRCLE_SIZE = 720;
 
@@ -274,10 +339,45 @@ function animateLearnAngleSweep(fromAngle, toAngle) {
   learnSweepAnimationFrame = requestAnimationFrame(drawFrame);
 }
 
+function learnQuadrantForAngle(angle) {
+  const normalizedAngle = ((angle % 360) + 360) % 360;
+  if (Math.abs(normalizedAngle % 90) < .001) return 0;
+  if (normalizedAngle < 90) return 1;
+  if (normalizedAngle < 180) return 2;
+  if (normalizedAngle < 270) return 3;
+  return 4;
+}
+
+function setLearnQuadrantGlow(angle) {
+  const activeQuadrant = learnQuadrantForAngle(angle);
+  document.querySelectorAll('.learn-quadrant-glow').forEach(glow => glow.classList.toggle('active', Number(glow.dataset.quadrant) === activeQuadrant));
+  document.querySelectorAll('.learn-quadrant-label').forEach((label, index) => label.classList.toggle('active', index + 1 === activeQuadrant));
+}
+
+function animateLearnQuadrantGlow(fromAngle, toAngle) {
+  if (learnQuadrantAnimationFrame) cancelAnimationFrame(learnQuadrantAnimationFrame);
+  if (window.matchMedia('(prefers-reduced-motion:reduce)').matches || Math.abs(toAngle - fromAngle) < .001) {
+    setLearnQuadrantGlow(toAngle);
+    return;
+  }
+  const startedAt = performance.now();
+  const duration = 350;
+  const drawFrame = now => {
+    const progress = Math.min(1, (now - startedAt) / duration);
+    const easedProgress = 1 - Math.pow(1 - progress, 4);
+    setLearnQuadrantGlow(fromAngle + (toAngle - fromAngle) * easedProgress);
+    if (progress < 1) learnQuadrantAnimationFrame = requestAnimationFrame(drawFrame);
+    else learnQuadrantAnimationFrame = null;
+  };
+  learnQuadrantAnimationFrame = requestAnimationFrame(drawFrame);
+}
+
 function setLearnAngle(angle) {
   const previousSweepAngle = selectedLearnAngle === 0 ? 360 : selectedLearnAngle;
+  const previousVisualAngle = learnVisualAngle;
   const shortestTurn = ((angle - selectedLearnAngle + 540) % 360) - 180;
   learnVisualAngle += shortestTurn;
+  animateLearnQuadrantGlow(previousVisualAngle, learnVisualAngle);
   selectedLearnAngle = angle;
   const radians = angle * Math.PI / 180;
   const cosine = Math.cos(radians);
@@ -356,10 +456,13 @@ function setLearnMode(mode) {
   body.innerHTML = '';
   lesson.body.forEach(paragraphText => {
     const paragraph = document.createElement('p');
-    paragraph.textContent = paragraphText;
+    if (lesson.usesMathMarkup) paragraph.innerHTML = paragraphText;
+    else paragraph.textContent = paragraphText;
     body.appendChild(paragraph);
   });
-  document.querySelector('#learn-takeaway').textContent = lesson.takeaway;
+  const takeaway = document.querySelector('#learn-takeaway');
+  if (lesson.usesMathMarkup) takeaway.innerHTML = lesson.takeaway;
+  else takeaway.textContent = lesson.takeaway;
   document.querySelector('#learn-circle-core').setAttribute('aria-label', `${lesson.title}. Fully labeled unit circle with ${ANGLE_NAMES[lesson.angle]} selected.`);
   setLearnAngle(lesson.angle);
 }
@@ -477,7 +580,7 @@ document.querySelector('[data-action="learn-back"]').addEventListener('click', (
 document.querySelectorAll('.learn-mode-button').forEach(button => button.addEventListener('click', () => setLearnMode(button.dataset.learnMode)));
 document.querySelector('[data-learn-zoom="out"]').addEventListener('click', () => setLearnZoom(learnZoom - .2));
 document.querySelector('[data-learn-zoom="in"]').addEventListener('click', () => setLearnZoom(learnZoom + .2));
-window.addEventListener('resize', () => { renderHeroAngleRays(); if (document.querySelector('#learn-screen').classList.contains('active')) { resetLearnZoom(); centerLearnCircle(); } });
+window.addEventListener('resize', () => { renderHeroAngleRays(); if (document.querySelector('#learn-screen').classList.contains('active')) { resetLearnZoom(); centerLearnCircle(); } scheduleTextSizeRefresh(); });
 
 document.querySelector('[data-action="start"]').addEventListener('click', () => showScreen('setup'));
 document.querySelector('[data-action="continue"]').addEventListener('click', () => { const session = lastQuizSession || cached; if (!session) return; restoreProgress(session); showScreen('quiz'); renderQuiz(); });
@@ -640,6 +743,7 @@ document.querySelector('#start-topic-quiz').addEventListener('click', () => { if
 document.querySelector('#randomize-topic-quiz').addEventListener('click', () => { if (previewTopic) startTopicQuiz(previewTopic, true); });
 document.querySelector('#quiz-answers').addEventListener('click', event => { const answerButton = event.target.closest('button'); if (!answerButton) return; const resultIcon = document.querySelector('#result-icon'); const isCorrect = answerButton.classList.contains('correct'); resultIcon.textContent = isCorrect ? '✓' : '!'; resultIcon.className = `result-icon ${isCorrect ? 'correct' : 'wrong'}`; });
 
+initializeTextSizePicker();
 const cached = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
 lastQuizSession = JSON.parse(localStorage.getItem(LAST_SESSION_KEY) || 'null') || cached;
 showContinueButton(lastQuizSession || cached);

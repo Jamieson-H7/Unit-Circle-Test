@@ -19,6 +19,12 @@
         <span>circlewise</span>
       </a>
       <div class="topbar-tools">
+        <div class="text-size-picker" role="group" aria-label="Text size">
+          <button class="text-size-option active" type="button" data-text-size="default" aria-label="Default text size" aria-pressed="true">A</button>
+          <button class="text-size-option" type="button" data-text-size="medium" aria-label="Medium text size" aria-pressed="false">A</button>
+          <button class="text-size-option" type="button" data-text-size="large" aria-label="Large text size" aria-pressed="false">A</button>
+          <button class="text-size-option" type="button" data-text-size="extra-large" aria-label="Extra-large text size" aria-pressed="false">A</button>
+        </div>
         <button class="learn-link" data-action="learn"><span class="learn-link-mark" aria-hidden="true">◎</span> Learn the Circle</button>
         <div class="topbar-meta"><span class="live-dot"></span><span id="header-status">learn at your pace</span></div>
       </div>
@@ -108,6 +114,10 @@
               <div class="learn-circle" id="learn-circle" data-mode="basics">
                 <div class="learn-circle-core" id="learn-circle-core" aria-label="Unit circle showing standard angles and exact coordinate values">
                   <span class="learn-quadrant-fill" aria-hidden="true"></span>
+                  <span class="learn-quadrant-glow learn-quadrant-glow-1" data-quadrant="1" aria-hidden="true"></span>
+                  <span class="learn-quadrant-glow learn-quadrant-glow-2" data-quadrant="2" aria-hidden="true"></span>
+                  <span class="learn-quadrant-glow learn-quadrant-glow-3" data-quadrant="3" aria-hidden="true"></span>
+                  <span class="learn-quadrant-glow learn-quadrant-glow-4" data-quadrant="4" aria-hidden="true"></span>
                   <span class="axis axis-x"></span><span class="axis axis-y"></span>
                   <span class="learn-axis-label learn-axis-x">x / cosine</span><span class="learn-axis-label learn-axis-y">y / sine</span>
                   <span class="learn-quadrant-label learn-q1"><strong>I</strong><small>cos + · sin +</small></span>
