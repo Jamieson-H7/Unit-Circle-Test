@@ -43,7 +43,7 @@ function shuffle(items) {
   return shuffled;
 }
 const answerSet = (answer, distractors) => { const fallback = ['−1', '−1 / 2', '0', '1 / 2', '1', 'undefined']; const options = [...new Set([answer, ...distractors, ...fallback])].slice(0, 4); const answers = shuffle(options); return { answers, correct: answers.indexOf(answer) }; };
-const binaryAnswerSet = answer => { const answers = shuffle(['+', '−']); return { answers, correct: answers.indexOf(answer) }; };
+const binaryAnswerSet = answer => { const answers = ['+', '−']; return { answers, correct: answers.indexOf(answer) }; };
 const quadrant = angle => angle < 90 ? 'I' : angle < 180 ? 'II' : angle < 270 ? 'III' : 'IV';
 const radianName = angle => RADIAN_NAMES[angle] === '0' ? '0 radians' : `${RADIAN_NAMES[angle]} radians`;
 function renderHeroAngleRays() { const rays = document.querySelector('#hero-angle-rays'); if (!rays) return; rays.innerHTML = ''; const labelRadius = window.matchMedia('(max-width:700px)').matches ? 44 : 56; STANDARD_ANGLES.forEach(angle => { const radians = angle * Math.PI / 180; const ray = document.createElement('span'); ray.className = 'hero-angle-ray'; ray.style.transform = `rotate(${-angle}deg)`; const label = document.createElement('span'); label.className = 'hero-angle-ray-label'; label.dataset.angle = angle; label.textContent = RADIAN_NAMES[angle]; label.style.left = `${50 + labelRadius * Math.cos(radians)}%`; label.style.top = `${50 - labelRadius * Math.sin(radians)}%`; rays.append(ray, label); }); }
@@ -80,7 +80,8 @@ function buildQuizQuestions() {
     const values = VALUES[angle];
     [['cos', 0, 'Cosine is the x-coordinate'], ['sin', 1, 'Sine is the y-coordinate'], ['tan', 2, 'Tangent is sin θ / cos θ']].forEach(([category, valueIndex, prefix]) => {
       const value = values[valueIndex];
-      questions.push({ id: `${category}-${angle}`, category, topic: LABELS[category], question: `What is ${category} ${ANGLE_NAMES[angle]}?`, ...answerSet(value, values.filter((_, index) => index !== valueIndex)), answer: value, angle, explanation: `${prefix}. At ${ANGLE_NAMES[angle]}, the value is ${value}.` });
+      const distractors = [...new Set(STANDARD_ANGLES.map(candidate => VALUES[candidate][valueIndex]).filter(candidate => candidate !== value))];
+      questions.push({ id: `${category}-${angle}`, category, topic: LABELS[category], question: `What is ${category} ${ANGLE_NAMES[angle]}?`, ...answerSet(value, distractors), answer: value, angle, explanation: `${prefix}. At ${ANGLE_NAMES[angle]}, the value is ${value}.` });
     });
   });
   STANDARD_ANGLES.forEach(angle => {
@@ -89,7 +90,7 @@ function buildQuizQuestions() {
     const distractors = STANDARD_ANGLES.filter(item => item !== angle).slice(0, 3).map(item => asksDegrees ? radianName(item) : ANGLE_NAMES[item]);
     questions.push({ id: `location-${angle}`, category: 'locations', topic: LABELS.locations, question: asksDegrees ? `Which radian measure matches ${ANGLE_NAMES[angle]}?` : `Where is ${radianName(angle)} located?`, ...answerSet(answer, distractors), answer, angle, displayAngle: answer, explanation: `${ANGLE_NAMES[angle]} and ${radianName(angle)} describe the same location on the circle.` });
   });
-  STANDARD_ANGLES.forEach(angle => {
+  STANDARD_ANGLES.filter(angle => angle % 90 !== 0).forEach(angle => {
     const correct = quadrant(angle);
     questions.push({ id: `sign-${angle}`, category: 'signs', topic: LABELS.signs, question: `Which quadrant contains ${ANGLE_NAMES[angle]}?`, answers: ['Quadrant I', 'Quadrant II', 'Quadrant III', 'Quadrant IV'], correct: ['I', 'II', 'III', 'IV'].indexOf(correct), answer: `Quadrant ${correct}`, angle, explanation: `${ANGLE_NAMES[angle]} is in Quadrant ${correct}. The signs of sine and cosine follow that quadrant.` });
   });
@@ -107,7 +108,9 @@ function getQuizSession() { return { phase: 'quiz', quizIndex, quizScore, catego
 function saveProgress() { const session = getQuizSession(); localStorage.setItem(STORAGE_KEY, JSON.stringify(session)); if (activeQuestions.length) { lastQuizSession = structuredClone(session); localStorage.setItem(LAST_SESSION_KEY, JSON.stringify(lastQuizSession)); } }
 function rememberQuizSession() { if (activeQuestions.length) { lastQuizSession = structuredClone(getQuizSession()); localStorage.setItem(LAST_SESSION_KEY, JSON.stringify(lastQuizSession)); } }
 function clearProgress() { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(LAST_SESSION_KEY); lastQuizSession = null; showContinueButton(null); }
-function restoreProgress(progress) { activeQuestions = progress.questions; quizIndex = Math.min(progress.quizIndex, activeQuestions.length - 1); quizScore = progress.quizScore; categoryScores = progress.categoryScores || {}; missedQuestionIds = progress.missedQuestionIds || []; }
+function isAxisQuadrantQuestion(question) { return question.category === 'signs' && /^sign-\d+$/.test(question.id) && question.angle % 90 === 0; }
+function normalizeSignAnswerOrder(question) { const isBinarySignQuestion = question.category === 'signs' && Array.isArray(question.answers) && question.answers.length === 2 && question.answers.includes('+') && question.answers.includes('−'); return isBinarySignQuestion ? { ...question, answers:['+', '−'], correct:question.answer === '+' ? 0 : 1 } : question; }
+function restoreProgress(progress) { const removedBeforeCurrent = progress.questions.slice(0, progress.quizIndex).filter(isAxisQuadrantQuestion).length; activeQuestions = progress.questions.filter(question => !isAxisQuadrantQuestion(question)).map(normalizeSignAnswerOrder); quizIndex = activeQuestions.length ? Math.min(Math.max(0, progress.quizIndex - removedBeforeCurrent), activeQuestions.length - 1) : 0; quizScore = progress.quizScore; categoryScores = progress.categoryScores || {}; missedQuestionIds = progress.missedQuestionIds || []; }
 function showContinueButton(progress) { document.querySelector('[data-action="continue"]').hidden = !(progress && progress.phase === 'quiz' && Array.isArray(progress.questions) && progress.questions.length); }
 function goHome() { showContinueButton(lastQuizSession); showScreen('home'); }
 function canUpdateHeroFromEvent(event) {
@@ -488,10 +491,142 @@ function renderPretest() { const item = window.pretestQuestions[pretestIndex]; d
 function answerPretest(index, button) { const item = window.pretestQuestions[pretestIndex]; document.querySelectorAll('#pretest-answers button').forEach(answer => answer.disabled = true); const isCorrect = index === item.correct; button.classList.add(isCorrect ? 'correct' : 'wrong'); if (isCorrect) pretestScore++; categoryScores[item.category] = (categoryScores[item.category] || 0) + (isCorrect ? 1 : 0); document.querySelector('#pretest-feedback').textContent = isCorrect ? 'Correct. That idea is already becoming instinct.' : `The answer is ${item.answers[item.correct]}. Take a moment to connect it to the circle.`; setTimeout(() => { pretestIndex++; if (pretestIndex < window.pretestQuestions.length) renderPretest(); else { const totals = window.pretestQuestions.reduce((result, question) => ({ ...result, [question.category]: (result[question.category] || 0) + 1 }), {}); const weakCategories = Object.keys(totals).filter(category => (categoryScores[category] || 0) < totals[category]); const focus = weakCategories.sort((a, b) => (categoryScores[a] || 0) - (categoryScores[b] || 0)); startQuiz({ focusCategories: focus, includedCategories: weakCategories.length ? weakCategories : null, maintenance: weakCategories.length === 0 }); } }, 1600); }
 
 function renderTicks() { const circle = document.querySelector('#unit-circle'); const ticks = document.querySelector('#angle-ticks'); const radius = circle.getBoundingClientRect().width / 2; ticks.innerHTML = ''; STANDARD_ANGLES.forEach(angle => { const tick = document.createElement('span'); const radians = angle * Math.PI / 180; tick.className = 'angle-tick'; tick.dataset.angle = angle; tick.style.left = `${50 + ((radius - 5) / (radius * 2)) * 100 * Math.cos(radians)}%`; tick.style.top = `${50 - ((radius - 5) / (radius * 2)) * 100 * Math.sin(radians)}%`; tick.style.transform = `translate(-50%, -50%) rotate(${90 - angle}deg)`; ticks.appendChild(tick); }); }
-function renderQuiz() { const item = activeQuestions[quizIndex]; renderTicks(); document.querySelector('#quiz-topic').textContent = item.topic; document.querySelector('#quiz-question').textContent = item.question; document.querySelector('#quiz-progress').textContent = `${String(quizIndex + 1).padStart(2, '0')} / ${activeQuestions.length}`; document.querySelector('#quiz-score').textContent = quizScore; document.querySelector('#quiz-result').classList.remove('show'); document.querySelector('#next-question').disabled = true; document.querySelector('#next-question').innerHTML = 'Choose an answer <span>→</span>'; document.querySelector('#circle-marker').style.left = '50%'; document.querySelector('#circle-marker').style.top = '50%'; document.querySelector('#target-marker').classList.remove('visible'); document.querySelector('#circle-feedback').innerHTML = ''; const answers = document.querySelector('#quiz-answers'); answers.innerHTML = ''; item.answers.forEach((answer, index) => { const button = document.createElement('button'); button.className = 'answer-button'; button.textContent = `${String.fromCharCode(65 + index)}  ${answer}`; button.addEventListener('click', () => answerQuiz(index, button)); answers.appendChild(button); }); saveProgress(); }
+function renderQuiz() {
+  const item = activeQuestions[quizIndex];
+  renderTicks();
+  document.querySelector('#quiz-topic').textContent = item.topic;
+  document.querySelector('#quiz-question').textContent = item.question;
+  document.querySelector('#quiz-progress').textContent = `${String(quizIndex + 1).padStart(2, '0')} / ${activeQuestions.length}`;
+  document.querySelector('#quiz-score').textContent = quizScore;
+  document.querySelector('#quiz-result').classList.remove('show', 'wrong');
+  const nextButton = document.querySelector('#next-question');
+  nextButton.disabled = true;
+  nextButton.innerHTML = 'Choose an answer <span>→</span>';
+  const circleMarker = document.querySelector('#circle-marker');
+  const targetMarker = document.querySelector('#target-marker');
+  const hideMarkers = item.category === 'signs';
+  circleMarker.style.left = '50%';
+  circleMarker.style.top = '50%';
+  circleMarker.classList.toggle('quiz-marker-hidden', hideMarkers);
+  targetMarker.classList.remove('visible');
+  targetMarker.classList.toggle('quiz-marker-hidden', hideMarkers);
+  document.querySelector('#circle-feedback').innerHTML = '';
+  if (isQuadrantSignQuestion(item)) renderQuadrantSignState(item);
+  const answers = document.querySelector('#quiz-answers');
+  answers.innerHTML = '';
+  item.answers.forEach((answer, index) => {
+    const button = document.createElement('button');
+    button.className = 'answer-button';
+    button.textContent = `${String.fromCharCode(65 + index)}  ${answer}`;
+    button.addEventListener('click', () => answerQuiz(index, button));
+    answers.appendChild(button);
+  });
+  saveProgress();
+}
 function circlePoint(angle, radius = 45) { const radians = angle * Math.PI / 180; return { x: 50 + radius * Math.cos(radians), y: 50 - radius * Math.sin(radians) }; }
+function isQuadrantSignQuestion(item) {
+  return item.category === 'signs' && /^(cos|sin|tan)-sign-(I|II|III|IV)$/.test(item.id);
+}
+function renderQuadrantSignState(item, revealCorrectSign = false) {
+  const feedback = document.querySelector('#circle-feedback');
+  const quadrantName = quadrant(item.angle);
+  const sector = { I:{ start:0, end:90, label:45 }, II:{ start:90, end:180, label:135 }, III:{ start:180, end:270, label:225 }, IV:{ start:270, end:360, label:315 } }[quadrantName];
+  const start = circlePoint(sector.start, 50);
+  const end = circlePoint(sector.end, 50);
+  const label = circlePoint(sector.label, 31);
+  const labelText = revealCorrectSign ? item.answer : `Q${quadrantName}`;
+  feedback.innerHTML = `<path class="feedback-sign-quadrant" d="M 50 50 L ${start.x} ${start.y} A 50 50 0 0 0 ${end.x} ${end.y} Z"></path><text class="feedback-sign-label" x="${label.x}" y="${label.y}">${labelText}</text>`;
+}
+function closestQuizAngle(angles, referenceAngle) {
+  return angles.reduce((closest, angle) => {
+    const distance = Math.abs(((angle - referenceAngle + 540) % 360) - 180);
+    const closestDistance = Math.abs(((closest - referenceAngle + 540) % 360) - 180);
+    return distance < closestDistance ? angle : closest;
+  });
+}
+function selectedQuizAnswerAngle(item, answerIndex) {
+  if (answerIndex === item.correct) return item.angle;
+  const selectedAnswer = item.answers[answerIndex];
+  if (item.category === 'locations') {
+    const matchedAngle = STANDARD_ANGLES.find(angle => selectedAnswer === ANGLE_NAMES[angle] || selectedAnswer === radianName(angle));
+    if (matchedAngle !== undefined) return matchedAngle;
+  }
+  if (item.category === 'signs') {
+    const quadrantMatch = selectedAnswer.match(/^Quadrant (I|II|III|IV)$/);
+    if (quadrantMatch) return { I:45, II:135, III:225, IV:315 }[quadrantMatch[1]];
+    const ratio = ['cos', 'sin', 'tan'].find(name => item.id.startsWith(`${name}-`));
+    if (ratio && (selectedAnswer === '+' || selectedAnswer === '\u2212')) {
+      const valueIndex = { cos:0, sin:1, tan:2 }[ratio];
+      const matchingAngles = STANDARD_ANGLES.filter(angle => {
+        const value = VALUES[angle][valueIndex];
+        if (value === '0' || value === 'undefined') return false;
+        return selectedAnswer === '\u2212' ? value.startsWith('\u2212') : !value.startsWith('\u2212');
+      });
+      if (matchingAngles.length) return closestQuizAngle(matchingAngles, item.angle);
+    }
+  }
+  if (['cos', 'sin', 'tan'].includes(item.category)) {
+    const valueIndex = { cos:0, sin:1, tan:2 }[item.category];
+    const matchingAngles = STANDARD_ANGLES.filter(angle => VALUES[angle][valueIndex] === selectedAnswer);
+    if (matchingAngles.length) return closestQuizAngle(matchingAngles, item.angle);
+    const selectedIsNegative = selectedAnswer.startsWith('\u2212') || selectedAnswer.startsWith('-');
+    const sameSignAngles = STANDARD_ANGLES.filter(angle => {
+      const value = VALUES[angle][valueIndex];
+      if (value === '0' || value === 'undefined') return false;
+      const valueIsNegative = value.startsWith('\u2212') || value.startsWith('-');
+      return valueIsNegative === selectedIsNegative;
+    });
+    if (sameSignAngles.length) return closestQuizAngle(sameSignAngles, item.angle);
+  }
+  return item.angle;
+}
+function renderSelectedCircleHighlight(item, selectedAngle, selectedAnswer) {
+  if (isQuadrantSignQuestion(item)) {
+    renderQuadrantSignState(item, true);
+    return;
+  }
+  renderCircleHighlight({ ...item, angle:selectedAngle, answer:selectedAnswer, displayAngle:selectedAnswer });
+  if (selectedAnswer !== item.answer) renderCorrectCircleHighlight(item);
+}
+function renderCorrectCircleHighlight(item) {
+  const feedback = document.querySelector('#circle-feedback');
+  const point = circlePoint(item.angle, 50);
+  if (item.category === 'signs') {
+    const sector = { I:{ start:0, end:90, label:45 }, II:{ start:90, end:180, label:135 }, III:{ start:180, end:270, label:225 }, IV:{ start:270, end:360, label:315 } }[quadrant(item.angle)];
+    const start = circlePoint(sector.start, 50);
+    const end = circlePoint(sector.end, 50);
+    const label = circlePoint(sector.label, 31);
+    feedback.insertAdjacentHTML('beforeend', `<path class="feedback-correct-quadrant" d="M 50 50 L ${start.x} ${start.y} A 50 50 0 0 0 ${end.x} ${end.y} Z"></path><text class="feedback-correct-label" x="${label.x}" y="${label.y}">Q${quadrant(item.angle)}</text>`);
+  } else if (item.category === 'locations') {
+    const orangeIndicatorRadius = 17;
+    const orangeIndicatorWidth = 1.1;
+    const indicatorRadius = orangeIndicatorRadius - orangeIndicatorWidth;
+    const arcPoint = circlePoint(item.angle, indicatorRadius);
+    const largeArc = item.angle > 180 ? 1 : 0;
+    const labelPoint = circlePoint(item.angle / 2, 29);
+    feedback.insertAdjacentHTML('beforeend', `<line class="feedback-correct-ray" x1="50" y1="50" x2="${point.x}" y2="${point.y}"></line><path class="feedback-correct-angle" d="M ${50 + indicatorRadius} 50 A ${indicatorRadius} ${indicatorRadius} 0 ${largeArc} 0 ${arcPoint.x} ${arcPoint.y}"></path><text class="feedback-correct-label" x="${labelPoint.x}" y="${labelPoint.y}">${item.displayAngle || item.answer}</text>`);
+  } else if (item.category === 'cos' || item.category === 'sin') {
+    const projection = item.category === 'cos' ? { x:point.x, y:50 } : { x:50, y:point.y };
+    const label = item.category === 'cos' ? 'cos' : 'sin';
+    const labelX = item.category === 'cos' ? (projection.x + 50) / 2 : (point.x < 50 ? 56 : 44);
+    const labelY = item.category === 'cos' ? (point.y < 50 ? 56 : 44) : (projection.y + 50) / 2;
+    const labelAnchor = item.category === 'sin' ? (point.x < 50 ? 'start' : 'end') : 'middle';
+    feedback.insertAdjacentHTML('beforeend', `<line class="feedback-correct-ray" x1="50" y1="50" x2="${point.x}" y2="${point.y}"></line><line class="feedback-correct-component" x1="${point.x}" y1="${point.y}" x2="${projection.x}" y2="${projection.y}"></line><line class="feedback-correct-component" x1="${projection.x}" y1="${projection.y}" x2="50" y2="50"></line><text class="feedback-correct-label" style="text-anchor:${labelAnchor}" x="${labelX}" y="${labelY}">${label} = ${item.answer}</text>`);
+  } else {
+    const radians = item.angle * Math.PI / 180;
+    const cosine = Math.cos(radians);
+    const tangentValue = Math.tan(radians);
+    if (Math.abs(cosine) < .0001) {
+      feedback.insertAdjacentHTML('beforeend', '<line class="feedback-correct-tangent-axis" x1="100" y1="0" x2="100" y2="100"></line><text class="feedback-correct-label" x="82" y="50">tan undefined</text>');
+    } else {
+      const tangentY = 50 - 50 * tangentValue;
+      const oppositeTangentY = 50 + 50 * tangentValue;
+      feedback.insertAdjacentHTML('beforeend', `<line class="feedback-correct-tangent-axis" x1="100" y1="0" x2="100" y2="100"></line><line class="feedback-correct-tangent" x1="0" y1="${oppositeTangentY}" x2="100" y2="${tangentY}"></line><circle class="feedback-correct-tangent-point" cx="100" cy="${tangentY}" r="2"></circle><text class="feedback-correct-label" x="76" y="${Math.max(4, tangentY - 4)}">tan = ${item.answer}</text>`);
+    }
+  }
+}
 function renderCircleHighlight(item) { const feedback = document.querySelector('#circle-feedback'); const point = circlePoint(item.angle, 50); document.querySelectorAll('.angle-tick').forEach(tick => { const highlighted = Number(tick.dataset.angle) === item.angle; tick.style.background = highlighted ? 'var(--coral)' : ''; tick.style.boxShadow = highlighted ? '0 0 0 4px rgba(229,111,85,.16)' : ''; tick.style.height = highlighted ? '14px' : ''; tick.style.width = highlighted ? '3px' : ''; }); if (item.category === 'signs') { const sector = { I: { start: 0, end: 90, label: 45 }, II: { start: 90, end: 180, label: 135 }, III: { start: 180, end: 270, label: 225 }, IV: { start: 270, end: 360, label: 315 } }[quadrant(item.angle)]; const start = circlePoint(sector.start, 50); const end = circlePoint(sector.end, 50); const label = circlePoint(sector.label, 31); feedback.innerHTML = `<path class="feedback-quadrant" d="M 50 50 L ${start.x} ${start.y} A 50 50 0 0 0 ${end.x} ${end.y} Z"></path><text class="feedback-label" x="${label.x}" y="${label.y}">Q${quadrant(item.angle)}</text>`; } else if (item.category === 'locations') { const arcPoint = circlePoint(item.angle, 17); const largeArc = item.angle > 180 ? 1 : 0; const labelPoint = circlePoint(item.angle / 2, 24); feedback.innerHTML = `<line class="feedback-ray" x1="50" y1="50" x2="${point.x}" y2="${point.y}"></line><path class="feedback-angle" d="M 67 50 A 17 17 0 ${largeArc} 0 ${arcPoint.x} ${arcPoint.y}"></path><text class="feedback-label" x="${labelPoint.x}" y="${labelPoint.y}">${item.displayAngle || item.answer}</text>`; } else if (item.category === 'cos' || item.category === 'sin') { const projection = item.category === 'cos' ? { x: point.x, y: 50 } : { x: 50, y: point.y }; const label = item.category === 'cos' ? 'cos' : 'sin'; const labelX = item.category === 'cos' ? (projection.x + 50) / 2 : (point.x < 50 ? 56 : 44); const labelY = item.category === 'cos' ? (point.y < 50 ? 56 : 44) : (projection.y + 50) / 2; const labelAnchor = item.category === 'sin' ? (point.x < 50 ? 'start' : 'end') : 'middle'; const labelStyle = item.category === 'sin' ? ` style="text-anchor:${labelAnchor}"` : ''; feedback.innerHTML = `<line class="feedback-ray" x1="50" y1="50" x2="${point.x}" y2="${point.y}"></line><line class="feedback-component" x1="${point.x}" y1="${point.y}" x2="${projection.x}" y2="${projection.y}"></line><line class="feedback-component" x1="${projection.x}" y1="${projection.y}" x2="50" y2="50"></line><text class="feedback-label"${labelStyle} x="${labelX}" y="${labelY}">${label} = ${item.answer}</text>`; } else { const radians = item.angle * Math.PI / 180; const cosine = Math.cos(radians); const tangentValue = Math.tan(radians); if (Math.abs(cosine) < 0.0001) { feedback.innerHTML = '<line class="feedback-tangent-axis" x1="100" y1="0" x2="100" y2="100"></line><text class="feedback-label" x="82" y="50">tan undefined</text>'; } else { const tangentY = 50 - 50 * tangentValue; const oppositeTangentY = 50 + 50 * tangentValue; feedback.innerHTML = `<line class="feedback-tangent-axis" x1="100" y1="0" x2="100" y2="100"></line><line class="feedback-tangent" x1="0" y1="${oppositeTangentY}" x2="100" y2="${tangentY}"></line><circle class="feedback-tangent-point" cx="100" cy="${tangentY}" r="2"></circle><text class="feedback-label" x="${Math.min(96, 76)}" y="${Math.max(4, tangentY - 4)}">tan = ${item.answer}</text>`; } } }
-function answerQuiz(index, button) { const item = activeQuestions[quizIndex]; document.querySelectorAll('#quiz-answers button').forEach(answer => answer.disabled = true); const isCorrect = index === item.correct; button.classList.add(isCorrect ? 'correct' : 'wrong'); if (isCorrect) quizScore++; else missedQuestionIds.push(item.id); positionMarker('#circle-marker', item.angle); if (!isCorrect) { positionMarker('#target-marker', item.angle); document.querySelector('#target-marker').classList.add('visible'); } document.querySelector('#result-title').textContent = isCorrect ? 'Exactly right.' : `The answer is ${item.answer}.`; document.querySelector('#result-copy').textContent = item.explanation; renderCircleHighlight(item); document.querySelector('#quiz-result').classList.add('show'); const next = document.querySelector('#next-question'); next.disabled = false; next.innerHTML = quizIndex === activeQuestions.length - 1 ? 'See your results <span>↗</span>' : 'Next question <span>→</span>'; saveProgress(); }
+function answerQuiz(index, button) { const item = activeQuestions[quizIndex]; document.querySelectorAll('#quiz-answers button').forEach(answer => answer.disabled = true); const isCorrect = index === item.correct; const selectedAnswer = item.answers[index]; const selectedAngle = selectedQuizAnswerAngle(item, index); button.classList.add(isCorrect ? 'correct' : 'wrong'); if (isCorrect) quizScore++; else missedQuestionIds.push(item.id); positionMarker('#circle-marker', selectedAngle); if (!isCorrect) { positionMarker('#target-marker', item.angle); document.querySelector('#target-marker').classList.add('visible'); } document.querySelector('#result-title').textContent = isCorrect ? 'Exactly right.' : `The answer is ${item.answer}.`; document.querySelector('#result-copy').textContent = item.explanation; renderSelectedCircleHighlight(item, selectedAngle, selectedAnswer); const quizResult = document.querySelector('#quiz-result'); quizResult.classList.toggle('wrong', !isCorrect); quizResult.classList.add('show'); const next = document.querySelector('#next-question'); next.disabled = false; next.innerHTML = quizIndex === activeQuestions.length - 1 ? 'See your results <span>↗</span>' : 'Next question <span>→</span>'; saveProgress(); }
 function positionMarker(selector, angle) { const radians = angle * Math.PI / 180; document.querySelector(selector).style.left = `${50 + 49 * Math.cos(radians)}%`; document.querySelector(selector).style.top = `${50 - 49 * Math.sin(radians)}%`; }
 function getGrade(score, total) { const percentage = total ? score / total * 100 : 0; return percentage >= 90 ? 'A' : percentage >= 80 ? 'B' : percentage >= 70 ? 'C' : percentage >= 60 ? 'D' : 'F'; }
 function createConfetti(count) { const celebration = document.querySelector('#celebration'); celebration.innerHTML = ''; for (let index = 0; index < count; index += 1) { const piece = document.createElement('span'); piece.className = 'confetti-piece'; piece.style.setProperty('--x', `${Math.random() * 100}%`); piece.style.setProperty('--delay', `${Math.random() * .7}s`); piece.style.setProperty('--spin', `${Math.random() * 720 - 360}deg`); piece.style.setProperty('--color', ['var(--coral)', 'var(--yellow)', 'var(--teal)', '#72b99d'][index % 4]); celebration.appendChild(piece); } }
