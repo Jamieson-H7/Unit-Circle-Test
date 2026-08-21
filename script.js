@@ -110,7 +110,7 @@ function clearProgress() { localStorage.removeItem(STORAGE_KEY); localStorage.re
 function restoreProgress(progress) { activeQuestions = progress.questions; quizIndex = Math.min(progress.quizIndex, activeQuestions.length - 1); quizScore = progress.quizScore; categoryScores = progress.categoryScores || {}; missedQuestionIds = progress.missedQuestionIds || []; }
 function showContinueButton(progress) { document.querySelector('[data-action="continue"]').hidden = !(progress && progress.phase === 'quiz' && Array.isArray(progress.questions) && progress.questions.length); }
 function goHome() { showContinueButton(lastQuizSession); showScreen('home'); }
-function showScreen(id) { screens.forEach(screen => screen.classList.toggle('active', screen.id === `${id}-screen`)); headerStatus.textContent = id === 'home' ? 'learn at your pace' : id === 'quiz' ? 'practice mode' : 'small steps, big arcs'; window.location.hash = id; }
+function showScreen(id) { screens.forEach(screen => screen.classList.toggle('active', screen.id === `${id}-screen`)); headerStatus.textContent = id === 'home' ? 'learn at your pace' : id === 'quiz' ? 'practice mode' : id === 'learn' ? 'visual learning mode' : 'small steps, big arcs'; window.location.hash = id; window.scrollTo({ top:0, behavior:'smooth' }); }
 function questionsForTopic(topic) { return topic === 'all' ? buildQuizQuestions() : topic === 'ratios' ? buildQuizQuestions().filter(item => ['sin', 'cos', 'tan'].includes(item.category)) : buildQuizQuestions().filter(item => item.category === topic); }
 function showTopicPreview(topic) { const questions = questionsForTopic(topic); const sampleAngles = { all: 0, signs: 90, locations: 135, ratios: 225 }; const sample = questions.find(question => question.angle === sampleAngles[topic]) || questions[0]; const previews = { all: 'Take a tour around the whole circle with quadrant signs, degree-and-radian matches, and exact sine, cosine, and tangent values.', signs: 'Read the circle by its quadrants: identify where angles land and how cosine, sine, and tangent change sign.', locations: 'Practice placing angles precisely by matching degrees with radians and finding their locations on the circle.', ratios: 'Build fluency with exact values by working through sine, cosine, and tangent at standard angles.' }; previewTopic = topic; document.querySelector('#preview-topic').textContent = topic === 'all' ? 'ALL TOPICS' : topic === 'ratios' ? 'RATIOS' : LABELS[topic]; document.querySelector('#preview-title').textContent = `${questions.length} questions ready`; document.querySelector('#preview-copy').textContent = `${previews[topic]} Question types: ${topic === 'all' ? 'quadrants and signs; degrees and radians; sine, cosine, and tangent values.' : topic === 'signs' ? 'quadrant locations, individual cosine and sine signs, and tangent signs.' : topic === 'locations' ? 'degree-to-radian matches and angle locations.' : 'exact sine, cosine, and tangent values.'} Sample: ${sample.question}`; document.querySelector('#topic-preview').hidden = false; document.querySelector('.practice-layout').hidden = true; document.querySelectorAll('#topic-tabs button').forEach(tab => tab.classList.toggle('active', tab.dataset.topic === topic)); }
 function startTopicQuiz(topic, randomize = false) { rememberQuizSession(); activeQuestions = questionsForTopic(topic); if (randomize) activeQuestions = shuffle(activeQuestions); quizIndex = 0; quizScore = 0; missedQuestionIds = []; previewTopic = null; document.querySelector('#topic-preview').hidden = true; document.querySelector('.practice-layout').hidden = false; document.querySelectorAll('#topic-tabs button').forEach(tab => tab.classList.toggle('active', tab.dataset.topic === 'active')); renderQuiz(); rememberQuizSession(); }
@@ -133,6 +133,316 @@ function updateHeroSnappedTangentLine(event) { if (!document.querySelector('#hom
 document.addEventListener('pointermove', updateHeroSnappedTangentLine);
 function updateHeroSnappedComponents(event) { if (!document.querySelector('#home-screen').classList.contains('active')) return; const circle = document.querySelector('#hero-circle'); const bounds = circle.getBoundingClientRect(); const centerX = bounds.left + bounds.width / 2; const centerY = bounds.top + bounds.height / 2; const rawAngle = (Math.atan2(-(event.clientY - centerY), event.clientX - centerX) * 180 / Math.PI + 360) % 360; const angle = snapHeroAngle(rawAngle); const distance = Math.min(Math.hypot(event.clientX - centerX, event.clientY - centerY), circle.offsetWidth / 2); const pointX = 50 + distance / circle.offsetWidth * 100 * Math.cos(angle * Math.PI / 180); const pointY = 50 - distance / circle.offsetWidth * 100 * Math.sin(angle * Math.PI / 180); const cos = document.querySelector('#hero-cos-component'); const sin = document.querySelector('#hero-sin-component'); cos.style.left = `${Math.min(50, pointX)}%`; cos.style.width = `${Math.abs(pointX - 50)}%`; sin.style.left = `${pointX}%`; sin.style.top = `${Math.min(50, pointY)}%`; sin.style.height = `${Math.abs(pointY - 50)}%`; }
 document.addEventListener('pointermove', updateHeroSnappedComponents);
+
+const LEARN_LESSONS = {
+  basics: {
+    angle: 45,
+    kicker: 'START HERE',
+    title: 'One circle, one unit wide',
+    body: [
+      'A circle is every point that sits the same distance from its center. On the unit circle, that distance—the radius—is exactly 1.',
+      'We place the center at (0, 0). Any point on the edge can then be described by how far it is left or right and how far it is up or down.',
+      'The angle θ tells us how far we have turned from the positive x-axis. Counterclockwise is the positive direction.'
+    ],
+    takeaway: 'A point on the unit circle packages an angle and a location into one picture.'
+  },
+  quadrants: {
+    angle: 135,
+    kicker: 'READ THE FOUR REGIONS',
+    title: 'The axes divide the circle',
+    body: [
+      'The horizontal and vertical axes split the plane into four regions called quadrants. They are numbered counterclockwise, beginning in the upper-right.',
+      'Right of center means the x-coordinate is positive; left means it is negative. Above center means the y-coordinate is positive; below means it is negative.',
+      'Because cosine is x and sine is y, the quadrant tells you their signs before you calculate anything.'
+    ],
+    takeaway: 'Quadrant I is (+, +), II is (−, +), III is (−, −), and IV is (+, −).'
+  },
+  angles: {
+    angle: 60,
+    kicker: 'TWO NAMES FOR ONE TURN',
+    title: 'Degrees and radians locate the same point',
+    body: [
+      'Degrees divide a full turn into 360 equal pieces. Radians measure the same turn by asking how much arc fits along a radius-1 circle.',
+      'A half-turn is 180° or π radians, so a full turn is 360° or 2π radians. Every familiar degree angle has a radian partner at the exact same location.',
+      'To move from degrees to radians, multiply by π/180. To move back, multiply by 180/π.'
+    ],
+    takeaway: '90° = π/2, 180° = π, 270° = 3π/2, and 360° = 2π.'
+  },
+  sincos: {
+    angle: 45,
+    kicker: 'READ THE POINT',
+    title: 'Cosine is across; sine is up',
+    body: [
+      'Choose an angle and look at the point where its radius meets the circle. Drop that point to the x-axis and you make a right triangle.',
+      'The horizontal part is cosine: it is the point’s x-coordinate. The vertical part is sine: it is the point’s y-coordinate.',
+      'The radius is 1, so neither coordinate can go beyond −1 or 1. Their signs simply follow the quadrant.'
+    ],
+    takeaway: 'Every circle point is written (cos θ, sin θ).'
+  },
+  tangent: {
+    angle: 45,
+    kicker: 'COMPARE RISE TO RUN',
+    title: 'Tangent measures steepness',
+    body: [
+      'Tangent compares the vertical change to the horizontal change. In the circle triangle, that is sine divided by cosine.',
+      'Extend the angle’s ray until it reaches the vertical line touching the circle at x = 1. The signed height of that meeting point is tan θ.',
+      'At the top and bottom of the circle, cosine is 0. Division by 0 is impossible, so tangent is undefined there.'
+    ],
+    takeaway: 'tan θ = sin θ / cos θ—the triangle’s rise divided by its run.'
+  }
+};
+let selectedLearnMode = 'basics';
+let selectedLearnAngle = 45;
+let learnVisualAngle = 45;
+let learnZoom = 1;
+let learnSweepAnimationFrame = null;
+let screenBeforeLearn = 'home';
+
+function compactExactValue(value) { return value.replaceAll(' ', ''); }
+function renderLearnAngleLabels() {
+  const labels = document.querySelector('#learn-angle-labels');
+  const rays = document.querySelector('#learn-rays');
+  labels.innerHTML = '';
+  rays.innerHTML = '';
+  STANDARD_ANGLES.forEach(angle => {
+    const radians = angle * Math.PI / 180;
+    const degreeLabel = angle === 0 ? `0\u00b0 / 360\u00b0` : ANGLE_NAMES[angle];
+    const radianLabel = angle === 0 ? `0 / 2\u03c0` : RADIAN_NAMES[angle];
+    const coordinate = `(${compactExactValue(VALUES[angle][0])}, ${compactExactValue(VALUES[angle][1])})`;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `learn-angle-label${angle % 90 === 0 ? ' axis-angle' : ''}`;
+    button.dataset.angle = angle;
+    const labelRadius = angle % 90 === 45 ? 69 : 64;
+    button.style.setProperty('--label-x', `${50 + labelRadius * Math.cos(radians)}%`);
+    button.style.setProperty('--label-y', `${50 - labelRadius * Math.sin(radians)}%`);
+    button.setAttribute('aria-label', `${degreeLabel}, ${radianLabel}, coordinates ${coordinate}`);
+    button.innerHTML = `<span class="degree">${degreeLabel}</span><span class="radian">${radianLabel}</span><span class="coordinate">${coordinate}</span>`;
+    button.addEventListener('click', () => setLearnAngle(angle));
+    labels.appendChild(button);
+    const ray = document.createElement('span');
+    ray.className = 'learn-ray';
+    ray.style.transform = `rotate(${-angle}deg)`;
+    rays.appendChild(ray);
+  });
+}
+
+function paintLearnAngleSweep(visualAngle) {
+  const sweep = document.querySelector('.learn-angle-sweep');
+  const normalizedAngle = ((visualAngle % 360) + 360) % 360;
+  const sweepSize = Math.abs(visualAngle) >= 359.999 ? 360 : normalizedAngle;
+  if (sweepSize >= 359.999) {
+    sweep.style.background = 'rgba(229,111,85,.28)';
+    return;
+  }
+  if (sweepSize < .001) {
+    sweep.style.background = 'none';
+    return;
+  }
+  const sweepStart = 90 - sweepSize;
+  sweep.style.background = `conic-gradient(from ${sweepStart}deg, rgba(229,111,85,.28) 0deg ${sweepSize}deg, transparent ${sweepSize}deg 360deg)`;
+}
+
+function animateLearnAngleSweep(fromAngle, toAngle) {
+  if (learnSweepAnimationFrame) cancelAnimationFrame(learnSweepAnimationFrame);
+  if (window.matchMedia('(prefers-reduced-motion:reduce)').matches || Math.abs(toAngle - fromAngle) < .001) {
+    paintLearnAngleSweep(toAngle);
+    return;
+  }
+  const startedAt = performance.now();
+  const duration = 350;
+  const drawFrame = now => {
+    const progress = Math.min(1, (now - startedAt) / duration);
+    const easedProgress = 1 - Math.pow(1 - progress, 4);
+    paintLearnAngleSweep(fromAngle + (toAngle - fromAngle) * easedProgress);
+    if (progress < 1) learnSweepAnimationFrame = requestAnimationFrame(drawFrame);
+    else learnSweepAnimationFrame = null;
+  };
+  learnSweepAnimationFrame = requestAnimationFrame(drawFrame);
+}
+
+function setLearnAngle(angle) {
+  const previousSweepAngle = selectedLearnAngle === 0 ? 360 : selectedLearnAngle;
+  const shortestTurn = ((angle - selectedLearnAngle + 540) % 360) - 180;
+  learnVisualAngle += shortestTurn;
+  selectedLearnAngle = angle;
+  const radians = angle * Math.PI / 180;
+  const cosine = Math.cos(radians);
+  const sine = Math.sin(radians);
+  const pointX = 50 + 50 * cosine;
+  const pointY = 50 - 50 * sine;
+  const exactCosine = compactExactValue(VALUES[angle][0]);
+  const exactSine = compactExactValue(VALUES[angle][1]);
+  const exactTangent = compactExactValue(VALUES[angle][2]);
+  const radius = document.querySelector('#learn-radius-line');
+  const pointOrbit = document.querySelector('#learn-demo-orbit');
+  const cosLine = document.querySelector('#learn-cos-line');
+  const sinLine = document.querySelector('#learn-sin-line');
+  const tangentLine = document.querySelector('#learn-tangent-line');
+  const tangentPoint = document.querySelector('#learn-tangent-point');
+  const tangentNote = document.querySelector('#learn-tan-note');
+  animateLearnAngleSweep(previousSweepAngle, angle === 0 ? 360 : angle);
+  radius.style.transform = `rotate(${-learnVisualAngle}deg)`;
+  pointOrbit.style.transform = `rotate(${-learnVisualAngle}deg)`;
+  cosLine.style.left = `${Math.min(50, pointX)}%`;
+  cosLine.style.top = '50%';
+  cosLine.style.width = `${Math.abs(pointX - 50)}%`;
+  sinLine.style.left = `${pointX}%`;
+  sinLine.style.top = `${Math.min(50, pointY)}%`;
+  sinLine.style.height = `${Math.abs(pointY - 50)}%`;
+  const tangentY = 50 - 50 * Math.tan(radians);
+  const tangentEndY = Math.max(-12, Math.min(112, tangentY));
+  const tangentIsVisible = Math.abs(cosine) > .0001 && tangentY >= -12 && tangentY <= 112;
+  tangentLine.style.transform = `rotate(${-learnVisualAngle}deg)`;
+  tangentPoint.style.top = `${tangentEndY}%`;
+  tangentPoint.style.opacity = tangentIsVisible ? '' : '0';
+  tangentNote.textContent = exactTangent === 'undefined' ? 'tan θ = undefined' : `tan θ = ${exactTangent}`;
+  tangentNote.style.left = exactTangent === 'undefined' ? '64%' : '76%';
+  tangentNote.style.top = exactTangent === 'undefined' ? '44%' : Math.abs(Math.tan(radians)) < .0001 ? '40%' : `${Math.max(12, Math.min(82, (50 + tangentEndY) / 2))}%`;
+  const radiusNote = document.querySelector('.learn-radius-note');
+  radiusNote.style.left = `${50 + 27 * cosine}%`;
+  radiusNote.style.top = `${50 - 27 * sine}%`;
+  const cosNote = document.querySelector('#learn-cos-note');
+  cosNote.textContent = `cos θ = ${exactCosine}`;
+  const sinNote = document.querySelector('#learn-sin-note');
+  sinNote.textContent = `sin θ = ${exactSine}`;
+  if (Math.abs(sine) < .0001) {
+    cosNote.style.left = '64%';
+    cosNote.style.top = '42%';
+    sinNote.style.left = '64%';
+    sinNote.style.top = '55%';
+  } else if (Math.abs(cosine) < .0001) {
+    cosNote.style.left = '54%';
+    cosNote.style.top = `${50 - 25 * sine}%`;
+    sinNote.style.left = '34%';
+    sinNote.style.top = `${50 - 25 * sine}%`;
+  } else {
+    cosNote.style.left = `${50 + 25 * cosine}%`;
+    cosNote.style.top = `${sine >= 0 ? 52 : 44}%`;
+    sinNote.style.left = `${Math.max(5, Math.min(82, pointX + (cosine >= 0 ? 3 : -20)))}%`;
+    sinNote.style.top = `${50 - 25 * sine}%`;
+  }
+  document.querySelectorAll('.learn-angle-label').forEach(label => label.classList.toggle('active', Number(label.dataset.angle) === angle));
+  const degreeLabel = angle === 0 ? '0° / 360°' : ANGLE_NAMES[angle];
+  const radianLabel = angle === 0 ? '0 / 2π' : RADIAN_NAMES[angle];
+  document.querySelector('#learn-angle-readout').innerHTML = `<strong>${degreeLabel} = ${radianLabel}</strong><span>point (${exactCosine}, ${exactSine}) · tan ${exactTangent}</span>`;
+}
+
+function setLearnMode(mode) {
+  selectedLearnMode = mode;
+  const lesson = LEARN_LESSONS[mode];
+  document.querySelector('#learn-circle').dataset.mode = mode;
+  document.querySelectorAll('.learn-mode-button').forEach(button => {
+    const active = button.dataset.learnMode === mode;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+  document.querySelector('#learn-copy-kicker').textContent = lesson.kicker;
+  document.querySelector('#learn-copy-title').textContent = lesson.title;
+  const body = document.querySelector('#learn-copy-body');
+  body.innerHTML = '';
+  lesson.body.forEach(paragraphText => {
+    const paragraph = document.createElement('p');
+    paragraph.textContent = paragraphText;
+    body.appendChild(paragraph);
+  });
+  document.querySelector('#learn-takeaway').textContent = lesson.takeaway;
+  document.querySelector('#learn-circle-core').setAttribute('aria-label', `${lesson.title}. Fully labeled unit circle with ${ANGLE_NAMES[lesson.angle]} selected.`);
+  setLearnAngle(lesson.angle);
+}
+
+function getLearnFitZoom() {
+  if (!window.matchMedia('(max-width:760px)').matches) return 1;
+  const scroller = document.querySelector('.learn-circle-scroll');
+  return Math.min(1, Math.max(.48, (scroller.clientWidth - 4) / 570));
+}
+
+function setLearnZoom(nextZoom, focalPoint = null) {
+  const scroller = document.querySelector('.learn-circle-scroll');
+  const circle = document.querySelector('#learn-circle');
+  const previousZoom = learnZoom;
+  const minimumZoom = getLearnFitZoom();
+  learnZoom = Math.max(minimumZoom, Math.min(1.6, nextZoom));
+  const contentX = focalPoint ? scroller.scrollLeft + focalPoint.x : 0;
+  const contentY = focalPoint ? scroller.scrollTop + focalPoint.y : 0;
+  circle.style.zoom = String(learnZoom);
+  document.querySelector('#learn-zoom-level').textContent = `${Math.round(learnZoom * 100)}%`;
+  if (focalPoint && previousZoom) {
+    const ratio = learnZoom / previousZoom;
+    scroller.scrollLeft = contentX * ratio - focalPoint.x;
+    scroller.scrollTop = contentY * ratio - focalPoint.y;
+  }
+}
+
+function resetLearnZoom() {
+  setLearnZoom(getLearnFitZoom());
+}
+
+function centerLearnCircle() {
+  const scroller = document.querySelector('.learn-circle-scroll');
+  if (scroller.scrollWidth > scroller.clientWidth) scroller.scrollLeft = (scroller.scrollWidth - scroller.clientWidth) / 2;
+  if (scroller.scrollHeight > scroller.clientHeight) scroller.scrollTop = (scroller.scrollHeight - scroller.clientHeight) / 2;
+}
+
+const learnPointers = new Map();
+let learnPinchStart = null;
+let learnDragStart = null;
+const learnScroller = document.querySelector('.learn-circle-scroll');
+function pointerDistance(points) { return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y); }
+learnScroller.addEventListener('pointerdown', event => {
+  if (event.pointerType !== 'touch' || !window.matchMedia('(max-width:760px)').matches) return;
+  learnPointers.set(event.pointerId, { x:event.clientX, y:event.clientY });
+  if (learnPointers.size === 1) learnDragStart = { x:event.clientX, y:event.clientY, left:learnScroller.scrollLeft, top:learnScroller.scrollTop };
+  if (learnPointers.size === 2) {
+    const points = [...learnPointers.values()];
+    learnPinchStart = { distance:pointerDistance(points), zoom:learnZoom };
+    learnDragStart = null;
+  }
+});
+learnScroller.addEventListener('pointermove', event => {
+  if (event.pointerType !== 'touch') return;
+  if (!learnPointers.has(event.pointerId)) return;
+  learnPointers.set(event.pointerId, { x:event.clientX, y:event.clientY });
+  if (learnPointers.size === 2 && learnPinchStart) {
+    event.preventDefault();
+    const points = [...learnPointers.values()];
+    const bounds = learnScroller.getBoundingClientRect();
+    const focalPoint = { x:(points[0].x + points[1].x) / 2 - bounds.left, y:(points[0].y + points[1].y) / 2 - bounds.top };
+    setLearnZoom(learnPinchStart.zoom * pointerDistance(points) / learnPinchStart.distance, focalPoint);
+  } else if (learnPointers.size === 1 && learnDragStart) {
+    const deltaX = event.clientX - learnDragStart.x;
+    const deltaY = event.clientY - learnDragStart.y;
+    if (Math.abs(deltaY) > Math.abs(deltaX)) return;
+    event.preventDefault();
+    learnScroller.scrollLeft = learnDragStart.left - deltaX;
+  }
+});
+function releaseLearnPointer(event) {
+  if (!learnPointers.has(event.pointerId)) return;
+  learnPointers.delete(event.pointerId);
+  learnPinchStart = null;
+  const remaining = [...learnPointers.values()][0];
+  learnDragStart = remaining ? { x:remaining.x, y:remaining.y, left:learnScroller.scrollLeft, top:learnScroller.scrollTop } : null;
+}
+learnScroller.addEventListener('pointerup', releaseLearnPointer);
+learnScroller.addEventListener('pointercancel', releaseLearnPointer);
+
+function openLearnScreen() {
+  const activeScreen = document.querySelector('.screen.active');
+  if (activeScreen && activeScreen.id !== 'learn-screen') screenBeforeLearn = activeScreen.id.replace('-screen', '');
+  showScreen('learn');
+  setLearnMode(selectedLearnMode);
+  requestAnimationFrame(() => { resetLearnZoom(); centerLearnCircle(); });
+}
+
+renderLearnAngleLabels();
+setLearnMode('basics');
+document.querySelector('[data-action="learn"]').addEventListener('click', openLearnScreen);
+document.querySelector('[data-action="learn-back"]').addEventListener('click', () => showScreen(screenBeforeLearn));
+document.querySelectorAll('.learn-mode-button').forEach(button => button.addEventListener('click', () => setLearnMode(button.dataset.learnMode)));
+document.querySelector('[data-learn-zoom="out"]').addEventListener('click', () => setLearnZoom(learnZoom - .15));
+document.querySelector('[data-learn-zoom="in"]').addEventListener('click', () => setLearnZoom(learnZoom + .15));
+window.addEventListener('resize', () => { if (document.querySelector('#learn-screen').classList.contains('active')) { resetLearnZoom(); centerLearnCircle(); } });
 
 document.querySelector('[data-action="start"]').addEventListener('click', () => showScreen('setup'));
 document.querySelector('[data-action="continue"]').addEventListener('click', () => { const session = lastQuizSession || cached; if (!session) return; restoreProgress(session); showScreen('quiz'); renderQuiz(); });
@@ -168,4 +478,5 @@ lastQuizSession = JSON.parse(localStorage.getItem(LAST_SESSION_KEY) || 'null') |
 showContinueButton(lastQuizSession || cached);
 if (window.location.hash === '#quiz') { if (cached && cached.phase === 'quiz' && Array.isArray(cached.questions) && cached.questions.length) { restoreProgress(cached); showScreen('quiz'); renderQuiz(); } else startQuiz(); }
 else if (window.location.hash === '#setup') showScreen('setup');
+else if (window.location.hash === '#learn') { showScreen('learn'); requestAnimationFrame(() => { resetLearnZoom(); centerLearnCircle(); }); }
 else showScreen('home');

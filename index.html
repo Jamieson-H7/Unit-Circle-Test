@@ -18,7 +18,10 @@
         <span class="brand-mark"><span></span></span>
         <span>circlewise</span>
       </a>
-      <div class="topbar-meta"><span class="live-dot"></span><span id="header-status">learn at your pace</span></div>
+      <div class="topbar-tools">
+        <button class="learn-link" data-action="learn"><span class="learn-link-mark" aria-hidden="true">◎</span> Learn the Circle</button>
+        <div class="topbar-meta"><span class="live-dot"></span><span id="header-status">learn at your pace</span></div>
+      </div>
     </header>
     <div class="celebration" id="celebration" aria-hidden="true"></div>
 
@@ -71,6 +74,80 @@
       <p class="section-intro" id="results-message">Your next pass can turn the missed ideas into quick instincts.</p>
       <div class="results-focus"><span class="topic-label">KEEP AN EYE ON</span><div id="results-topics"></div></div>
       <div class="results-actions"><button class="button button-primary" id="retry-quiz">Take another quiz <span>↗</span></button><button class="button button-quiet" id="results-home">Back home</button></div>
+    </section>
+
+    <section class="screen learn-screen" id="learn-screen" aria-labelledby="learn-title">
+      <button class="back-link learn-back" data-action="learn-back">← Back to where I was</button>
+      <div class="learn-heading">
+        <p class="eyebrow">A visual field guide</p>
+        <h2 id="learn-title">Learn the<br><em>circle.</em></h2>
+        <p class="section-intro">Start with the shape, then reveal one idea at a time. Tap any angle label to move the example around the circle.</p>
+      </div>
+
+      <div class="learn-layout">
+        <nav class="learn-controls" aria-label="Unit circle lessons">
+          <button class="learn-mode-button active" data-learn-mode="basics" aria-pressed="true"><span>01</span><strong>Circle basics</strong></button>
+          <button class="learn-mode-button" data-learn-mode="quadrants" aria-pressed="false"><span>02</span><strong>Learn quadrants</strong></button>
+          <button class="learn-mode-button" data-learn-mode="angles" aria-pressed="false"><span>03</span><strong>Degrees &amp; radians</strong></button>
+          <button class="learn-mode-button" data-learn-mode="sincos" aria-pressed="false"><span>04</span><strong>Sine &amp; cosine</strong></button>
+          <button class="learn-mode-button" data-learn-mode="tangent" aria-pressed="false"><span>05</span><strong>Learn tangent</strong></button>
+        </nav>
+
+        <div class="learn-visual-column">
+          <div class="learn-stage">
+            <div class="learn-stage-heading">
+              <span class="topic-label">FULLY LABELED UNIT CIRCLE</span>
+              <div class="learn-zoom-tools" aria-label="Circle zoom controls">
+                <button type="button" data-learn-zoom="out" aria-label="Zoom out">−</button>
+                <output id="learn-zoom-level" aria-live="polite">100%</output>
+                <button type="button" data-learn-zoom="in" aria-label="Zoom in">+</button>
+              </div>
+              <span class="learn-swipe-hint">Pinch to zoom · drag to move</span>
+            </div>
+            <div class="learn-circle-scroll" tabindex="0" aria-label="Scrollable unit circle diagram">
+              <div class="learn-circle" id="learn-circle" data-mode="basics">
+                <div class="learn-circle-core" id="learn-circle-core" aria-label="Unit circle showing standard angles and exact coordinate values">
+                  <span class="learn-quadrant-fill" aria-hidden="true"></span>
+                  <span class="axis axis-x"></span><span class="axis axis-y"></span>
+                  <span class="learn-axis-label learn-axis-x">x / cosine</span><span class="learn-axis-label learn-axis-y">y / sine</span>
+                  <span class="learn-quadrant-label learn-q1"><strong>I</strong><small>cos + · sin +</small></span>
+                  <span class="learn-quadrant-label learn-q2"><strong>II</strong><small>cos − · sin +</small></span>
+                  <span class="learn-quadrant-label learn-q3"><strong>III</strong><small>cos − · sin −</small></span>
+                  <span class="learn-quadrant-label learn-q4"><strong>IV</strong><small>cos + · sin −</small></span>
+                  <span class="learn-angle-sweep" aria-hidden="true"></span>
+                  <span class="learn-rays" id="learn-rays" aria-hidden="true"></span>
+                  <span class="learn-radius-line" id="learn-radius-line"></span>
+                  <span class="learn-cos-line" id="learn-cos-line"></span>
+                  <span class="learn-sin-line" id="learn-sin-line"></span>
+                  <span class="learn-tangent-axis" aria-hidden="true"></span>
+                  <span class="learn-tangent-clip"><span class="learn-tangent-line" id="learn-tangent-line"></span></span>
+                  <span class="learn-tangent-point" id="learn-tangent-point"></span>
+                  <span class="learn-demo-orbit" id="learn-demo-orbit"><span class="learn-demo-point" id="learn-demo-point"></span></span>
+                  <span class="learn-origin">0</span>
+                  <span class="learn-radius-note">radius = 1</span>
+                  <span class="learn-cos-note" id="learn-cos-note">cos θ</span>
+                  <span class="learn-sin-note" id="learn-sin-note">sin θ</span>
+                  <span class="learn-tan-note" id="learn-tan-note">tan θ</span>
+                  <span class="learn-angle-labels" id="learn-angle-labels"></span>
+                </div>
+              </div>
+            </div>
+            <div class="learn-angle-readout" id="learn-angle-readout" aria-live="polite"></div>
+          </div>
+          <div class="learn-legend" aria-label="Diagram legend">
+            <span><i class="legend-line coral"></i> angle &amp; radius</span>
+            <span><i class="legend-line teal"></i> cosine / horizontal</span>
+            <span><i class="legend-line yellow"></i> sine / vertical</span>
+          </div>
+        </div>
+
+        <article class="learn-copy" id="learn-copy" aria-live="polite">
+          <p class="topic-label" id="learn-copy-kicker">START HERE</p>
+          <h3 id="learn-copy-title">One circle, one unit wide</h3>
+          <div id="learn-copy-body"></div>
+          <div class="learn-takeaway"><span>ONE IDEA TO KEEP</span><p id="learn-takeaway"></p></div>
+        </article>
+      </div>
     </section>
 
     <footer><span>© 2026 circlewise</span><span>learn by doing</span></footer>
