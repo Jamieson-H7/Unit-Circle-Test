@@ -16,6 +16,10 @@ footer { margin-top:auto; padding-top:50px; color:#94a19d; }.full-quiz { margin-
 @media (max-width:700px) { .app-shell{padding:22px 22px 15px}.topbar-meta{display:none}.hero-copy{padding-top:75px}.hero-copy h1{font-size:52px}.hero-art{position:relative; right:auto; top:auto; width:82vw; margin:65px auto 25px}.hero-description{font-size:14px}.narrow-screen,.quiz-screen{margin-top:8vh}.back-link{margin-bottom:45px}.choice-grid,.question-layout{grid-template-columns:1fr;gap:18px}.choice-card{min-height:185px}.choice-icon{margin:18px 0 5px}.quiz-heading{align-items:end}.quiz-heading h2{font-size:44px}.progress-track{margin:25px 0 35px}.question-layout{gap:35px}.mini-circle{width:180px;grid-row:1}.practice-layout .circle-stage{grid-row:2}.unit-circle{width:min(75vw,310px)}.practice-panel{grid-row:1}.topic-tabs{overflow:auto;white-space:nowrap}.topic-tabs button{padding-left:3px;padding-right:9px}.circle-key{font-size:9px}.hero-circle{width:100%}footer{font-size:9px} }
 
 /* Interaction refinements */
+.question-layout.practice-layout { align-items:start; }
+.answer-button { transition:background-color .2s,border-color .2s,color .2s; }
+.result-box { transition:opacity .3s,transform .3s,background-color .3s; }
+body.text-size-measuring,body.text-size-measuring * { transition:none !important; }
 .hero-copy { max-width:48%; }
 .hero-art { right:2vw; width:min(38vw,480px); }
 .feedback { min-height:48px; font-size:14px; line-height:1.55; }
@@ -49,7 +53,7 @@ footer { margin-top:auto; padding-top:50px; color:#94a19d; }.full-quiz { margin-
 .feedback-quadrant { fill:rgba(229,111,85,.18); }
 .feedback-ray,.feedback-component,.feedback-tangent { stroke:var(--coral); stroke-width:.8; fill:none; }
 .feedback-component { stroke-dasharray:2 1; }
-.feedback-tangent { stroke:var(--teal); stroke-width:1.1; }
+.feedback-tangent { stroke:var(--coral); stroke-width:1.1; }
 .feedback-tangent-axis { stroke:var(--yellow); stroke-width:1.1; }
 .feedback-tangent-point { fill:var(--yellow); }
 .feedback-angle { stroke:var(--coral); stroke-width:1.1; fill:none; }
@@ -59,6 +63,7 @@ footer { margin-top:auto; padding-top:50px; color:#94a19d; }.full-quiz { margin-
 .feedback-correct-tangent-point { fill:#3f8f73; }
 .feedback-correct-label { fill:#3f8f73; font:500 4px 'DM Mono',monospace; text-anchor:middle; dominant-baseline:middle; }
 .feedback-label { fill:var(--coral); font:500 4px 'DM Mono',monospace; text-anchor:middle; dominant-baseline:middle; }
+.feedback-label,.feedback-correct-label { paint-order:stroke fill; stroke:rgba(247,244,238,.96); stroke-width:1.25px; stroke-linejoin:round; }
 .target-marker { z-index:3; width:18px; height:18px; background:rgba(114,185,157,.2); border:2px dotted #3f8f73; }
 .circle-marker.quiz-marker-hidden,.target-marker.quiz-marker-hidden { opacity:0 !important; }
 .key-dot.target { background:rgba(114,185,157,.2); border:1px dotted #3f8f73; }
@@ -93,6 +98,12 @@ footer { margin-top:auto; padding-top:50px; color:#94a19d; }.full-quiz { margin-
 .topic-preview p { max-width:540px; margin:10px 0 0; color:var(--muted); font-size:13px; line-height:1.6; }
 .topic-preview-actions { --topic-action-size:55px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
 .topic-preview-actions > .button { height:var(--topic-action-size); }
+.ratio-unit-picker { display:grid; gap:4px; flex:1 0 100%; }
+.ratio-unit-picker[hidden] { display:none; }
+.ratio-unit-picker span { color:var(--muted); font:500 10px 'DM Mono',monospace; letter-spacing:.1em; text-transform:uppercase; }
+.ratio-unit-picker select { min-width:220px; height:44px; padding:0 36px 0 13px; border:1px solid var(--line); border-radius:2px; background:var(--white); color:var(--ink); font:500 13px 'DM Mono',monospace; cursor:pointer; }
+.ratio-unit-picker select:hover,.ratio-unit-picker select:focus { border-color:var(--teal); outline:none; }
+.ratio-unit-picker select:focus-visible { box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--coral); }
 .icon-button { width:var(--topic-action-size); aspect-ratio:1; padding:0; display:grid; place-items:center; }
 .icon-button span { margin-left:0; font-size:22px; }
 @media (max-width:700px) { .topic-preview { align-items:flex-start; flex-direction:column; padding:22px; } }
@@ -245,10 +256,15 @@ footer { font-size:12px; }
 .learn-copy { position:sticky; top:24px; padding:25px; border-top:3px solid var(--teal); background:var(--white); box-shadow:0 10px 0 rgba(23,59,63,.04); }
 .learn-copy h3 { margin:13px 0 18px; font-size:clamp(24px,2.3vw,32px); line-height:1.08; letter-spacing:-.035em; }
 #learn-copy-body p { margin:0 0 14px; color:var(--muted); font-size:15px; line-height:1.68; }
-.learn-math { display:inline-block; margin:0 .08em; color:var(--ink); font-family:'Cambria Math','STIX Two Math','Times New Roman',serif; font-size:1.08em; white-space:nowrap; }
-.learn-math-fraction { margin-inline:.18em; vertical-align:-.45em; }
+.learn-math { display:inline-flex; align-items:baseline; gap:.04em; margin:0 .08em; color:var(--ink); font-family:'Times New Roman',Times,serif; font-size:1.06em; font-style:normal; font-weight:400; letter-spacing:0; white-space:nowrap; }
+.learn-math i { font-style:italic; }
+.learn-math-unit { margin-left:.16em; font-size:.82em; font-style:normal; }
+.learn-math-equation { align-items:center; gap:.3em; margin-inline:.18em; vertical-align:middle; }
+.learn-fraction { display:inline-grid; grid-template-rows:auto auto; align-items:center; text-align:center; font-size:.9em; line-height:.95; }
+.learn-fraction > span:first-child { padding:0 .2em .07em; border-bottom:1px solid currentColor; }
+.learn-fraction > span:last-child { padding:.07em .2em 0; }
 .learn-takeaway { margin-top:22px; padding:16px; background:#e5eee7; }
-.learn-takeaway span { color:var(--teal); font:500 10px 'DM Mono',monospace; letter-spacing:.1em; }
+.learn-takeaway > span { color:var(--teal); font:500 10px 'DM Mono',monospace; letter-spacing:.1em; }
 .learn-takeaway p { margin:8px 0 0; font-size:14px; line-height:1.5; font-weight:650; }
 .learn-circle[data-mode="quadrants"] .learn-quadrant-fill,
 .learn-circle[data-mode="quadrants"] .learn-quadrant-label,

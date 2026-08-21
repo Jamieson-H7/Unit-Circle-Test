@@ -68,7 +68,21 @@
       <button class="back-link quiz-back" data-action="home">← Back home</button>
       <div class="quiz-heading"><div><p class="eyebrow">Full practice</p><h2 id="quiz-title">Quiz Time</h2></div><div class="score-chip"><span id="quiz-score">0</span> correct</div></div>
       <div class="topic-tabs" id="topic-tabs"><button class="session-tab active" data-topic="active">Active quiz</button><button data-topic="all">All topics</button><button data-topic="signs">Signs</button><button data-topic="locations">Degrees & radians</button><button data-topic="ratios">Ratios</button></div>
-      <div class="topic-preview" id="topic-preview" hidden><div><span class="topic-label" id="preview-topic"></span><strong id="preview-title"></strong><p id="preview-copy"></p></div><div class="topic-preview-actions"><button class="button button-primary" id="start-topic-quiz">Start this quiz <span>→</span></button><button class="button button-secondary icon-button" id="randomize-topic-quiz" aria-label="Shuffle questions" title="Shuffle questions"><span aria-hidden="true">⤨</span></button></div></div>
+      <div class="topic-preview" id="topic-preview" hidden>
+        <div><span class="topic-label" id="preview-topic"></span><strong id="preview-title"></strong><p id="preview-copy"></p></div>
+        <div class="topic-preview-actions">
+          <label class="ratio-unit-picker" id="ratio-unit-picker" hidden>
+            <span>Angle units</span>
+            <select id="ratio-angle-unit" aria-label="Choose angle units for the ratios quiz">
+              <option value="both">Degrees &amp; radians</option>
+              <option value="degrees">Degrees only</option>
+              <option value="radians">Radians only</option>
+            </select>
+          </label>
+          <button class="button button-primary" id="start-topic-quiz">Start this quiz <span>→</span></button>
+          <button class="button button-secondary icon-button" id="randomize-topic-quiz" aria-label="Start with shuffled questions" title="Start with shuffled questions"><span aria-hidden="true">⤨</span></button>
+        </div>
+      </div>
       <div class="question-layout practice-layout"><div class="circle-stage"><div class="unit-circle" id="unit-circle"><span class="axis axis-x"></span><span class="axis axis-y"></span><span class="angle-ticks" id="angle-ticks" aria-hidden="true"></span><svg class="circle-feedback" id="circle-feedback" viewBox="0 0 100 100" aria-hidden="true"></svg><span class="circle-marker" id="circle-marker"></span><span class="target-marker" id="target-marker"></span></div><div class="circle-key"><span><i class="key-dot current"></i> your answer</span><span><i class="key-dot target"></i> correct location</span></div></div><div class="question-panel practice-panel"><div class="question-meta"><span class="topic-label" id="quiz-topic">EXACT VALUES</span><span class="progress-label" id="quiz-progress">01 / 12</span></div><h3 id="quiz-question">Which point on the circle represents 60°?</h3><div class="answer-grid" id="quiz-answers"></div><button class="button button-primary next-button" id="next-question" data-action="next" disabled>Choose an answer <span>→</span></button><div class="result-box" id="quiz-result" aria-live="polite"><span class="result-icon" id="result-icon"></span><div><strong id="result-title"></strong><p id="result-copy"></p></div></div></div></div>
     </section>
 
